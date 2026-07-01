@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Politics - Agentic RAG Flow Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&fafile:///home/miguelsb/workspace/open-politics/graph_flow.htmlmily=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #0f131a;
+            --bg-surface: rgba(22, 29, 41, 0.7);
+            --bg-surface-hover: rgba(30, 39, 56, 0.9);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            
+            /* Accent Colors */
+            --color-indigo: #6366f1;
+            --color-indigo-glow: rgba(99, 102, 241, 0.35);
+            --color-emerald: #10b981;
+            --color-emerald-glow: rgba(16, 185, 129, 0.35);
+            --color-amber: #f59e0b;
+            --color-amber-glow: rgba(245, 158, 11, 0.35);
+            --color-rose: #f43f5e;
+            --color-rose-glow: rgba(244, 63, 94, 0.35);
+            
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+        }
+
+        header {
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 19, 26, 0.8);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .logo-section h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-section p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .badge {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 24px;
+            padding: 48px 40px;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Glass Panel */
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+            height: 760px; /* Uniform height for alignment */
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-indigo);
+            box-shadow: 0 0 10px var(--color-indigo);
+        }
+
+        .flow-panel {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 14, 20, 0.4);
+            position: relative;
+            flex: 1; /* Stretch to fill panel container height */
+        }
+
+        /* SVG Graph Styling */
+        svg {
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+        }
+
+        .graph-node {
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .node-rect {
+            fill: #1a2230;
+            stroke: var(--border-color);
+            stroke-width: 1.5px;
+            transition: var(--transition-smooth);
+            rx: 12px;
+        }
+
+        .node-circle {
+            fill: #1a2230;
+            stroke: var(--border-color);
+            stroke-width: 2px;
+            transition: var(--transition-smooth);
+        }
+
+        .node-diamond {
+            fill: #1e1b29;
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 1.5px;
+            transition: var(--transition-smooth);
+        }
+
+        .node-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            fill: var(--text-primary);
+            pointer-events: none;
+            font-weight: 500;
+            text-anchor: middle;
+        }
+
+        .node-subtext {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10px;
+            fill: var(--text-secondary);
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        /* Connection Edges */
+        .edge-path {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 2px;
+            transition: var(--transition-smooth);
+        }
+
+        .edge-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            fill: var(--text-secondary);
+            text-anchor: middle;
+            background-color: var(--bg-base);
+        }
+
+        /* Marker arrowheads */
+        marker path {
+            fill: rgba(255, 255, 255, 0.2);
+            transition: var(--transition-smooth);
+        }
+
+        /* Node States */
+        .graph-node.active .node-rect {
+            fill: rgba(99, 102, 241, 0.15);
+            stroke: var(--color-indigo);
+            stroke-width: 2px;
+            filter: drop-shadow(0 0 8px var(--color-indigo-glow));
+        }
+
+        .graph-node.active .node-circle {
+            fill: rgba(99, 102, 241, 0.2);
+            stroke: var(--color-indigo);
+            filter: drop-shadow(0 0 8px var(--color-indigo-glow));
+        }
+
+        .graph-node.active.grade-node .node-diamond {
+            fill: rgba(245, 158, 11, 0.1);
+            stroke: var(--color-amber);
+            stroke-width: 2px;
+            filter: drop-shadow(0 0 8px var(--color-amber-glow));
+        }
+
+        .graph-node.completed .node-rect {
+            stroke: var(--color-emerald);
+            fill: rgba(16, 185, 129, 0.05);
+        }
+        
+        .graph-node.completed .node-circle {
+            stroke: var(--color-emerald);
+        }
+
+        /* Active Animated Paths */
+        .edge-path.active {
+            stroke: var(--color-indigo);
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 4px var(--color-indigo-glow));
+        }
+        
+        .edge-path.active-branch-yes {
+            stroke: var(--color-emerald);
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 4px var(--color-emerald-glow));
+        }
+
+        .edge-path.active-branch-no {
+            stroke: var(--color-amber);
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 4px var(--color-amber-glow));
+        }
+
+        .pulse-flow {
+            stroke-dasharray: 8, 8;
+            animation: dash 30s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        /* Control Sidebar */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 24px;
+        }
+
+        .scenario-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        select {
+            width: 100%;
+            background: #151b26;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 14px 18px;
+            border-radius: 10px;
+            appearance: none;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        select:focus {
+            border-color: var(--color-indigo);
+            box-shadow: 0 0 0 2px var(--color-indigo-glow);
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        /* Simulator Actions */
+        .sim-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 14px 20px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition-smooth);
+            outline: none;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--color-indigo);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #4f46e5;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: #1a2230;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #242f42;
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Execution Card Container */
+        .execution-card {
+            border: 1.5px solid var(--border-color);
+            background: rgba(22, 29, 41, 0.45);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+            flex-shrink: 0; /* Prevent flex shrink from compressing card contents */
+        }
+        
+        .execution-card.running {
+            border-color: var(--color-indigo);
+            background: rgba(99, 102, 241, 0.04);
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.12);
+        }
+
+        .execution-card.complete {
+            border-color: rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.02);
+        }
+
+        .execution-card.warning {
+            border-color: rgba(245, 158, 11, 0.25);
+            background: rgba(245, 158, 11, 0.02);
+        }
+
+        /* Card Header Button */
+        .card-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            outline: none;
+        }
+
+        .card-header:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .card-title-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            line-height: 1;
+        }
+
+        .card-title-section span:not(.card-arrow) {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+        }
+
+        .card-arrow {
+            font-size: 0.65rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-secondary);
+            width: 12px;
+            height: 12px;
+            line-height: 1;
+        }
+
+        .execution-card.expanded .card-arrow {
+            transform: rotate(90deg);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            height: 22px;
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge.running {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            animation: pulse-badge 1.5s ease-in-out infinite;
+        }
+
+        .status-badge.complete {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .status-badge.warning {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.97); }
+        }
+
+        /* Card Content Body */
+        .card-body {
+            padding: 18px;
+            border-top: 1.5px solid var(--border-color);
+            background: rgba(10, 14, 20, 0.25);
+            font-size: 0.88rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            display: none;
+            animation: slide-down 0.25s ease-out;
+        }
+
+        .execution-card.expanded .card-body {
+            display: block;
+        }
+
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-metadata {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .card-meta-item {
+            background: rgba(8, 12, 18, 0.6);
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .card-meta-item .meta-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .card-meta-item .meta-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            display: block;
+        }
+
+        /* Hide scrollbars for execution cards container */
+        #execution-cards-container {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        #execution-cards-container::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari, Opera */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- LEFT: Dynamic Graph View -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Runtime State Machine Graph</span>
+                <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--color-indigo)"></span> Node Active
+                    </div>
+                </div>
+            </div>
+            <div class="flow-panel">
+                <!-- SVG Interactive State Graph -->
+                <svg viewBox="0 0 820 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <!-- Glow Filters -->
+                        <filter id="glow-indigo" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="6" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                        
+                        <!-- Arrow markers -->
+                        <marker id="arrow" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(255, 255, 255, 0.3)" />
+                        </marker>
+                        
+                        <marker id="arrow-indigo" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#6366f1" />
+                        </marker>
+
+                        <marker id="arrow-emerald" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+                        </marker>
+                        
+                        <marker id="arrow-amber" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#f59e0b" />
+                        </marker>
+                    </defs>
+
+                    <!-- Connection Pathways (Edges) -->
+                    <!-- START -> generate_query_or_respond -->
+                    <path id="edge-start-llm" class="edge-path" d="M 50 240 L 150 240" marker-end="url(#arrow)" />
+
+                    <!-- generate_query_or_respond -> retrieve -->
+                    <path id="edge-llm-retrieve" class="edge-path" d="M 230 210 C 230 140, 310 120, 350 120" marker-end="url(#arrow)" />
+                    
+                    <!-- generate_query_or_respond -> END -->
+                    <path id="edge-llm-end" class="edge-path" d="M 230 270 C 230 380, 560 380, 715 305" marker-end="url(#arrow)" />
+
+                    <!-- retrieve -> grade_documents -->
+                    <path id="edge-retrieve-grade" class="edge-path" d="M 470 120 L 530 120" marker-end="url(#arrow)" />
+
+                    <!-- grade_documents -> generate_answer (Yes branch) -->
+                    <path id="edge-grade-generate" class="edge-path" d="M 570 140 C 570 210, 560 240, 610 240" marker-end="url(#arrow)" />
+
+                    <!-- grade_documents -> rewrite_question (No branch) -->
+                    <path id="edge-grade-rewrite" class="edge-path" d="M 550 100 C 550 40, 480 40, 430 40" marker-end="url(#arrow)" />
+
+                    <!-- rewrite_question -> generate_query_or_respond -->
+                    <path id="edge-rewrite-llm" class="edge-path" d="M 310 40 C 230 40, 230 150, 230 190" marker-end="url(#arrow)" />
+
+                    <!-- generate_answer -> END -->
+                    <path id="edge-generate-end" class="edge-path" d="M 730 240 C 760 240, 760 280, 760 285" marker-end="url(#arrow)" />
+
+
+                    <!-- GRAPH NODES -->
+                    <!-- START -->
+                    <g id="node-START" class="graph-node" onclick="inspectNode('START')">
+                        <circle class="node-circle" cx="50" cy="240" r="16" />
+                        <text class="node-text" x="50" y="244" style="font-size: 10px; font-weight: bold; fill:#f43f5e">START</text>
+                    </g>
+
+                    <!-- generate_query_or_respond -->
+                    <g id="node-generate_query_or_respond" class="graph-node" onclick="inspectNode('generate_query_or_respond')">
+                        <rect class="node-rect" x="150" y="195" width="160" height="90" />
+                        <text class="node-text" x="230" y="235">generate_query_or</text>
+                        <text class="node-text" x="230" y="252">respond</text>
+                        <text class="node-subtext" x="230" y="270">[LLM Decision Node]</text>
+                    </g>
+
+                    <!-- retrieve -->
+                    <g id="node-retrieve" class="graph-node" onclick="inspectNode('retrieve')">
+                        <rect class="node-rect" x="350" y="85" width="120" height="70" />
+                        <text class="node-text" x="410" y="122">retrieve</text>
+                        <text class="node-subtext" x="410" y="140">[Tool Execution]</text>
+                    </g>
+
+                    <!-- grade_documents (Gateway representation) -->
+                    <g id="node-grade_documents" class="graph-node grade-node" onclick="inspectNode('grade_documents')">
+                        <polygon class="node-diamond" points="550,80 590,120 550,160 510,120" />
+                        <text class="node-text" x="550" y="120" style="font-size: 10px; font-weight: bold;">GRADE</text>
+                        <text class="node-subtext" x="550" y="140" style="font-size: 8px;">Relevance</text>
+                    </g>
+
+                    <!-- rewrite_question -->
+                    <g id="node-rewrite_question" class="graph-node" onclick="inspectNode('rewrite_question')">
+                        <rect class="node-rect" x="310" y="5" width="120" height="70" />
+                        <text class="node-text" x="370" y="42">rewrite_question</text>
+                        <text class="node-subtext" x="370" y="60">[Query Refiner]</text>
+                    </g>
+
+                    <!-- generate_answer -->
+                    <g id="node-generate_answer" class="graph-node" onclick="inspectNode('generate_answer')">
+                        <rect class="node-rect" x="610" y="205" width="120" height="70" />
+                        <text class="node-text" x="670" y="242">generate_answer</text>
+                        <text class="node-subtext" x="670" y="260">[RAG Synthesis]</text>
+                    </g>
+
+                    <!-- END -->
+                    <g id="node-END" class="graph-node" onclick="inspectNode('END')">
+                        <circle class="node-circle" cx="760" cy="300" r="16" />
+                        <circle cx="760" cy="300" r="12" fill="none" stroke="rgba(244, 63, 94, 0.3)" stroke-width="1" />
+                        <text class="node-text" x="760" y="304" style="font-size: 10px; font-weight: bold; fill:#f43f5e">END</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <!-- RIGHT: Execution Card Trace -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title" id="trace-panel-title">Graph Execution Trace: Scenario A</span>
+            </div>
+            <div class="control-panel" style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; height: calc(100% - 60px);">
+                <div id="execution-cards-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; height: 100%; padding-right: 4px; scroll-behavior: smooth;">
+                    <!-- Dynamically populated cards representing active node execution -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Logic for Simulation & Inspector -->
+    <script>
+        const SCENARIOS = {
+            direct: {
+                name: "Scenario A: Direct Chat",
+                query: "Hello there!",
+                steps: [
+                    { 
+                        node: "START", 
+                        edge: null, 
+                        desc: "Starting point of the LangGraph execution. Receives thread config and appends messages.", 
+                        input: "content: 'Hello there!'", 
+                        output: "RagState(messages=[HumanMessage(...)], rewrite_count=0)"
+                    },
+                    { 
+                        node: "generate_query_or_respond", 
+                        edge: "edge-start-llm", 
+                        desc: "LLM evaluates input. Binds retriever tools. Determines that no search is required for a simple greeting.", 
+                        input: "messages: [HumanMessage('Hello there!')]", 
+                        output: "messages: [..., AiMessage('Hello! How can I help you today?')] (No tool_calls detected)"
+                    },
+                    { 
+                        node: "END", 
+                        edge: "edge-llm-end", 
+                        desc: "Terminal point of the graph. Returns final response to the user.", 
+                        input: "RagState(messages=[..., AiMessage('Hello!')])", 
+                        output: "final_message: 'Hello! How can I help you today?'"
+                    }
+                ]
+            },
+            rag_success: {
+                name: "Scenario B: RAG Query (Lilian Weng Example)",
+                query: "What does Lilian Weng say about reward hacking?",
+                steps: [
+                    { 
+                        node: "START", 
+                        edge: null, 
+                        desc: "Starting point of the LangGraph execution. Prepares the state schema.", 
+                        input: "content: 'What does Lilian Weng say...'", 
+                        output: "RagState(messages=[HumanMessage(...)], rewrite_count=0)"
+                    },
+                    { 
+                        node: "generate_query_or_respond", 
+                        edge: "edge-start-llm", 
+                        desc: "Analyzes semantic intent. Detects keyword triggers for Lilian Weng blog posts and decides to call the retrieve_blog_posts tool.", 
+                        input: "messages: [HumanMessage('What does Lilian Weng say about reward hacking?')]", 
+                        output: "messages: [..., AiMessage(tool_calls=[{'name': 'retrieve_blog_posts', 'args': {'query': 'reward hacking'}}])]"
+                    },
+                    { 
+                        node: "retrieve", 
+                        edge: "edge-llm-retrieve", 
+                        desc: "Loads cached vector database from models/doc_splits.pkl and retrieves relevant text chunks for 'reward hacking'.", 
+                        input: "query: 'reward hacking'", 
+                        output: "ToolMessage(content='Detecting Reward Hacking: Lilian Weng says reward hacking can be categorized into environment/goal misspecification and reward tampering...')"
+                    },
+                    { 
+                        node: "grade_documents", 
+                        edge: "edge-retrieve-grade", 
+                        desc: "Relevance grader LLM performs binary evaluation ('yes'/'no') of retrieved context against user question.", 
+                        input: "question: 'What does Lilian Weng say...'\ncontext: 'Detecting Reward Hacking...'", 
+                        output: "GradeDocuments(binary_score='yes') ➔ Routes to: 'generate_answer'"
+                    },
+                    { 
+                        node: "generate_answer", 
+                        edge: "edge-grade-generate", 
+                        desc: "Synthesizes final cohesive response strictly based on verified documents.", 
+                        input: "context: 'Detecting Reward Hacking...'\nquestion: 'What does Lilian Weng...'", 
+                        output: "AiMessage('Lilian Weng states that reward hacking falls into two types: environment or goal misspecification, and reward tampering.')"
+                    },
+                    { 
+                        node: "END", 
+                        edge: "edge-generate-end", 
+                        desc: "Terminal state. Returns final answer to the user.", 
+                        input: "RagState(messages=[..., AiMessage('Lilian Weng states...')])", 
+                        output: "final_message: 'Lilian Weng states that reward hacking falls into two types...'"
+                    }
+                ]
+            },
+            rag_loop: {
+                name: "Scenario C: Query Refinement (Relevance Loop)",
+                query: "What is the capital of France?",
+                steps: [
+                    { 
+                        node: "START", 
+                        edge: null, 
+                        desc: "Starting point of the execution.", 
+                        input: "content: 'What is the capital of France?'", 
+                        output: "RagState(messages=[HumanMessage(...)], rewrite_count=0)"
+                    },
+                    { 
+                        node: "generate_query_or_respond", 
+                        edge: "edge-start-llm", 
+                        desc: "Determines if tools are needed. First pass triggers tool due to query keyword search template.", 
+                        input: "messages: [HumanMessage('What is the capital of France?')]", 
+                        output: "messages: [..., AiMessage(tool_calls=[{'name': 'retrieve_blog_posts', 'args': {'query': 'capital of France'}}])]"
+                    },
+                    { 
+                        node: "retrieve", 
+                        edge: "edge-llm-retrieve", 
+                        desc: "Loads cached vector database from models/doc_splits.pkl and retrieves closest chunks.", 
+                        input: "query: 'capital of France'", 
+                        output: "ToolMessage(content='Lilian Weng posts cover adversarial attacks, diffusion, reward hacking...')"
+                    },
+                    { 
+                        node: "grade_documents", 
+                        edge: "edge-retrieve-grade", 
+                        desc: "Relevance grader LLM performs binary evaluation.", 
+                        input: "question: 'What is the capital of France?'\ncontext: 'Lilian Weng posts cover...'", 
+                        output: "GradeDocuments(binary_score='no') ➔ Routes to: 'rewrite_question'"
+                    },
+                    { 
+                        node: "rewrite_question", 
+                        edge: "edge-grade-rewrite", 
+                        desc: "LLM analyzes intent and rewrites the user question to focus search. Increments rewrite_count.", 
+                        input: "original: 'What is the capital of France?'", 
+                        output: "messages: [HumanMessage('France capital location name')]\nrewrite_count: 1"
+                    },
+                    { 
+                        node: "generate_query_or_respond", 
+                        edge: "edge-rewrite-llm", 
+                        desc: "LLM re-evaluates the rewritten query. Determines no relevant context exists in the blog database for this topic. Bypasses search to answer directly.", 
+                        input: "messages: [HumanMessage('France capital location name')]", 
+                        output: "messages: [..., AiMessage('The capital of France is Paris.')] (No tool_calls detected)"
+                    },
+                    { 
+                        node: "END", 
+                        edge: "edge-llm-end", 
+                        desc: "Terminal state.", 
+                        input: "RagState(messages=[..., AiMessage('The capital of France is Paris.')])", 
+                        output: "final_message: 'The capital of France is Paris.'"
+                    }
+                ]
+            }
+        };
+
+        let currentScenario = "direct";
+        let currentStepIndex = -1;
+        let playInterval = null;
+        const STEP_DELAY = 700; // 0.7 seconds between steps
+
+        // Reset visual styles on all nodes and edges
+        function clearVisuals() {
+            document.querySelectorAll('.graph-node').forEach(node => {
+                node.classList.remove('active', 'completed');
+            });
+            document.querySelectorAll('.edge-path').forEach(path => {
+                path.classList.remove('active', 'active-branch-yes', 'active-branch-no', 'pulse-flow');
+                path.setAttribute('marker-end', 'url(#arrow)');
+            });
+        }
+
+        // Reset the simulation state and populate cards
+        function resetSimulation() {
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+            currentStepIndex = -1;
+            clearVisuals();
+            
+            // Update trace panel title
+            const scenario = SCENARIOS[currentScenario];
+            document.getElementById('trace-panel-title').innerText = `Graph Execution Trace: ${scenario.name}`;
+            
+            // Clear and populate the cards container with pending cards
+            const container = document.getElementById('execution-cards-container');
+            container.innerHTML = '';
+            
+            scenario.steps.forEach((step, idx) => {
+                const card = document.createElement('div');
+                card.className = 'execution-card';
+                card.id = `card-${idx}`;
+                
+                card.innerHTML = `
+                    <button class="card-header" onclick="toggleCard(${idx})">
+                        <span class="card-title-section">
+                            <span class="card-arrow">▶</span>
+                            <span>${step.node}</span>
+                        </span>
+                        <span class="status-badge pending" id="badge-${idx}">pending</span>
+                    </button>
+                    <div class="card-body" id="body-${idx}">
+                        <p style="margin-bottom: 8px;">${step.desc}</p>
+                        <div class="card-metadata">
+                            <div class="card-meta-item">
+                                <span class="meta-label">input</span>
+                                <span class="meta-val">${step.input}</span>
+                            </div>
+                            <div class="card-meta-item">
+                                <span class="meta-label">output</span>
+                                <span class="meta-val">${step.output}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function startAutoplay() {
+            // Step immediately
+            nextStep();
+            
+            if (playInterval) clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                nextStep();
+            }, STEP_DELAY);
+        }
+
+        // Expand or collapse card manually on click
+        function toggleCard(idx) {
+            const card = document.getElementById(`card-${idx}`);
+            if (card) {
+                card.classList.toggle('expanded');
+            }
+        }
+
+        // Advance to next step
+        function nextStep() {
+            const scenario = SCENARIOS[currentScenario];
+            if (currentStepIndex >= scenario.steps.length - 1) {
+                return;
+            }
+
+            // Collapse previous active card and set status to complete
+            if (currentStepIndex >= 0) {
+                const prevCard = document.getElementById(`card-${currentStepIndex}`);
+                const prevBadge = document.getElementById(`badge-${currentStepIndex}`);
+                if (prevCard && prevBadge) {
+                    prevCard.classList.remove('running', 'expanded');
+                    
+                    const prevStep = scenario.steps[currentStepIndex];
+                    if (prevStep.node === 'rewrite_question') {
+                        prevCard.classList.add('warning');
+                        prevBadge.className = 'status-badge warning';
+                        prevBadge.innerText = 'warning';
+                    } else {
+                        prevCard.classList.add('complete');
+                        prevBadge.className = 'status-badge complete';
+                        prevBadge.innerText = 'complete';
+                    }
+                }
+            }
+
+            currentStepIndex++;
+            const step = scenario.steps[currentStepIndex];
+            
+            // Highlight current card in 'running' state and expand it
+            const currentCard = document.getElementById(`card-${currentStepIndex}`);
+            const currentBadge = document.getElementById(`badge-${currentStepIndex}`);
+            if (currentCard && currentBadge) {
+                currentCard.classList.add('running', 'expanded');
+                currentBadge.className = 'status-badge running';
+                currentBadge.innerText = 'running';
+                
+                // Scroll card into view inside container
+                const container = document.getElementById('execution-cards-container');
+                container.scrollTop = currentCard.offsetTop - container.offsetTop - 10;
+            }
+
+            // 1. Clear previous active SVG nodes (but keep completed markers)
+            document.querySelectorAll('.graph-node').forEach(node => {
+                if (node.classList.contains('active')) {
+                    node.classList.remove('active');
+                    node.classList.add('completed');
+                }
+            });
+
+            // 2. Highlight current SVG node
+            const currentNodeEl = document.getElementById(`node-${step.node}`);
+            if (currentNodeEl) {
+                currentNodeEl.classList.add('active');
+            }
+
+            // 3. Highlight current edge leading to this node
+            if (step.edge) {
+                const edgeEl = document.getElementById(step.edge);
+                if (edgeEl) {
+                    if (step.edge === 'edge-grade-generate') {
+                        edgeEl.classList.add('active-branch-yes', 'pulse-flow');
+                        edgeEl.setAttribute('marker-end', 'url(#arrow-emerald)');
+                    } else if (step.edge === 'edge-grade-rewrite') {
+                        edgeEl.classList.add('active-branch-no', 'pulse-flow');
+                        edgeEl.setAttribute('marker-end', 'url(#arrow-amber)');
+                    } else {
+                        edgeEl.classList.add('active', 'pulse-flow');
+                        edgeEl.setAttribute('marker-end', 'url(#arrow-indigo)');
+                    }
+                }
+            }
+
+            // 4. Check if reached END
+            if (step.node === "END") {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                
+                // Finalize END card status
+                setTimeout(() => {
+                    const endCard = document.getElementById(`card-${currentStepIndex}`);
+                    const endBadge = document.getElementById(`badge-${currentStepIndex}`);
+                    if (endCard && endBadge) {
+                        endCard.classList.remove('running');
+                        endCard.classList.add('complete');
+                        endBadge.className = 'status-badge complete';
+                        endBadge.innerText = 'complete';
+                    }
+                }, 300);
+                
+                // Determine next scenario in loop
+                let nextScenarioKey = "direct";
+                if (currentScenario === "direct") {
+                    nextScenarioKey = "rag_success";
+                } else if (currentScenario === "rag_success") {
+                    nextScenarioKey = "rag_loop";
+                } else if (currentScenario === "rag_loop") {
+                    nextScenarioKey = "direct";
+                }
+                
+                // Wait 1.2 seconds before starting the next scenario
+                setTimeout(() => {
+                    currentScenario = nextScenarioKey;
+                    resetSimulation();
+                    startAutoplay();
+                }, 1200);
+            }
+        }
+
+        // Initialize simulation loop on load
+        window.onload = () => {
+            resetSimulation();
+            setTimeout(startAutoplay, 600);
+        };
+    </script>
+</body>
+</html>
